@@ -1,29 +1,54 @@
-import requests
+"""Everything about Emotion Detection."""
+
 import json
+import requests
+
+
 def emotion_detector(text_to_analyse):
-    URL= 'https://sn-watson-emotion.labs.skills.network/v1/watson.runtime.nlp.v1/NlpService/EmotionPredict'
-    Headers= {"grpc-metadata-mm-model-id": "emotion_aggregated-workflow_lang_en_stock"}
-    Input= { "raw_document": { "text": text_to_analyse } }
-    response = requests.post(URL, json =Input, headers=Headers)
-    formatted_response = json.loads(response.text)
-    if response.status_code == 200:
-        emotion_scores = formatted_response['emotionPredictions'][0]['emotion']
-        dominant_emotion = max(emotion_scores, key=emotion_scores.get)
-        desired_object = {
-            'anger': emotion_scores['anger'],
-            'disgust': emotion_scores['disgust'],
-            'fear': emotion_scores['fear'],
-            'joy': emotion_scores['joy'],
-            'sadness': emotion_scores['sadness'],
-            'dominant_emotion': dominant_emotion
+    """
+    Run emotion detection using Watson NLP library.
+    """
+
+    response = requests.post(
+        url="https://sn-watson-emotion.labs.skills.network/v1/"
+            "watson.runtime.nlp.v1/NlpService/EmotionPredict",
+        headers={
+            "grpc-metadata-mm-model-id":
+            "emotion_aggregated-workflow_lang_en_stock"
+        },
+        json={
+            "raw_document": {
+                "text": text_to_analyse
+            }
+        },
+        timeout=20
+    )
+
+    if response.status_code == 400:
+        analysis_result = {
+            "anger": None,
+            "disgust": None,
+            "fear": None,
+            "joy": None,
+            "sadness": None,
+            "dominant_emotion": None
         }
-    elif response.status_code == 400:
-        desired_object = {
-            'anger': None,
-            'disgust': None,
-            'fear': None,
-            'joy': None,
-            'sadness': None,
-            'dominant_emotion': None
+    else:
+        response_text_dict = json.loads(response.text)
+
+        emotions = response_text_dict[
+            "emotionPredictions"
+        ][0]["emotion"]
+
+        key_max_score = max(emotions, key=emotions.get)
+
+        analysis_result = {
+            "anger": emotions["anger"],
+            "disgust": emotions["disgust"],
+            "fear": emotions["fear"],
+            "joy": emotions["joy"],
+            "sadness": emotions["sadness"],
+            "dominant_emotion": key_max_score
         }
-    return desired_object
+
+    return analysis_result
